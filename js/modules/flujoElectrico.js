@@ -2,6 +2,12 @@ const EPS0 = 8.854e-12;
 
 function renderFlujoElectrico(body) {
   const K = 8.99e9;
+  const SIGMA_UNITS = [
+    { label: 'nC/m²', f: 1e-9 }, { label: 'µC/m²', f: 1e-6, sel: true }, { label: 'C/m²', f: 1 },
+  ];
+  const SEP_UNITS = [
+    { label: 'mm', f: 1e-3 }, { label: 'cm', f: 1e-2, sel: true }, { label: 'm', f: 1 },
+  ];
   let charges = [
     { q: 3, x: 0, y: 0 },
     { q: -1, x: 0.3, y: 0.2 },
@@ -16,7 +22,9 @@ function renderFlujoElectrico(body) {
           <label for="f-mode">Tipo de problema</label>
           <select id="f-mode">
             <option value="plana">Superficie plana en campo uniforme</option>
-            <option value="gauss">Superficie cerrada (Ley de Gauss)</option>
+            <option value="gauss">Superficie cerrada con cargas (Ley de Gauss)</option>
+            <option value="cascaron">Cascarón esférico cargado</option>
+            <option value="placas">Placas paralelas cargadas</option>
           </select>
         </div>
 
@@ -67,6 +75,41 @@ function renderFlujoElectrico(body) {
             <div id="f-charge-list"></div>
           </div>
           <button class="btn secondary" id="f-clear">Quitar todas las cargas</button>
+        </div>
+
+        <div id="f-cascaron" style="display:none">
+          <div class="field">
+            <label for="f-sh-type">Tipo de cascarón</label>
+            <select id="f-sh-type">
+              <option value="delgado">Cascarón delgado (radio R)</option>
+              <option value="grueso">Cascarón conductor grueso (radios a y b)</option>
+            </select>
+          </div>
+          ${UI.field({ id: 'f-sh-Q', label: 'Carga neta del cascarón (Q)', units: UI.CHARGE_UNITS, min: -10, max: 10, step: 0.1, value: 4 })}
+          ${UI.field({ id: 'f-sh-q', label: 'Carga puntual en el centro (q)', units: UI.CHARGE_UNITS, min: -10, max: 10, step: 0.1, value: 2, hint: 'Pon 0 si el cascarón está vacío.' })}
+          <div id="f-sh-thin">
+            ${UI.field({ id: 'f-sh-R', label: 'Radio del cascarón (R)', units: UI.LENGTH_UNITS, min: 0.05, max: 3, step: 0.01, value: 1, lo: 0, loOpen: true })}
+          </div>
+          <div id="f-sh-thick" style="display:none">
+            ${UI.field({ id: 'f-sh-a', label: 'Radio interior (a)', units: UI.LENGTH_UNITS, min: 0.05, max: 3, step: 0.01, value: 0.8, lo: 0, loOpen: true })}
+            ${UI.field({ id: 'f-sh-b', label: 'Radio exterior (b)', units: UI.LENGTH_UNITS, min: 0.05, max: 3, step: 0.01, value: 1.2, lo: 0, loOpen: true })}
+          </div>
+          ${UI.field({ id: 'f-sh-r', label: 'Radio de la superficie gaussiana (r)', units: UI.LENGTH_UNITS, min: 0.01, max: 3, step: 0.01, value: 1.5, lo: 0, loOpen: true })}
+        </div>
+
+        <div id="f-placas" style="display:none">
+          <div class="field">
+            <label>Configuración rápida</label>
+            <div class="btn-row">
+              <button class="btn" id="f-p-same">Mismo signo</button>
+              <button class="btn red" id="f-p-opp">Signos opuestos</button>
+            </div>
+          </div>
+          ${UI.field({ id: 'f-p-s1', label: 'Densidad de carga placa 1 (σ₁)', units: SIGMA_UNITS, min: -10, max: 10, step: 0.1, value: 2 })}
+          ${UI.field({ id: 'f-p-s2', label: 'Densidad de carga placa 2 (σ₂)', units: SIGMA_UNITS, min: -10, max: 10, step: 0.1, value: -2 })}
+          ${UI.field({ id: 'f-p-d', label: 'Separación entre placas (d)', units: SEP_UNITS, min: 0.1, max: 20, step: 0.1, value: 1, lo: 0, loOpen: true })}
+          ${UI.field({ id: 'f-p-A', label: 'Área de la superficie gaussiana (A)', unit: 'm²', min: 0.001, max: 1, step: 0.001, value: 0.01, lo: 0, loOpen: true, hint: 'Cilindro gaussiano (pastillero) que atraviesa la placa 1.' })}
+          <div class="field-hint">Placas consideradas infinitas (d mucho menor que su tamaño).</div>
         </div>
       </div>
 
@@ -425,11 +468,268 @@ function renderFlujoElectrico(body) {
     container.appendChild(cap);
   }
 
+
+  // ---------------- Cascarón esférico ----------------
+  // Carga encerrada por una esfera gaussiana concéntrica de radio r.
+  function shellQenc(r, p) {
+    if (p.type === 'delgado') return r < p.R ? p.q : p.q + p.Q;
+    if (r < p.a) return p.q;
+    if (r < p.b) return 0; // dentro del conductor: q + (−q inducida) = 0
+    return p.q + p.Q;
+  }
+
+  function updateCascaron() {
+    const type = body.querySelector('#f-sh-type').value;
+    body.querySelector('#f-sh-thin').style.display = type === 'delgado' ? '' : 'none';
+    body.querySelector('#f-sh-thick').style.display = type === 'grueso' ? '' : 'none';
+    const p = {
+      type, Q: UI.get(body, 'f-sh-Q'), q: UI.get(body, 'f-sh-q'),
+      R: UI.get(body, 'f-sh-R'), a: UI.get(body, 'f-sh-a'), b: UI.get(body, 'f-sh-b'),
+    };
+    const r = UI.get(body, 'f-sh-r');
+    const badRadii = type === 'grueso' && p.a >= p.b;
+
+    const qenc = shellQenc(r, p);
+    const phi = qenc / EPS0;
+    const E = K * qenc / (r * r);
+    let region;
+    if (type === 'delgado') region = r < p.R ? 'Dentro del cascarón' : 'Fuera del cascarón';
+    else region = r < p.a ? 'En el hueco (r < a)' : r < p.b ? 'Dentro del conductor' : 'Fuera del cascarón (r > b)';
+    const surfaces = type === 'delgado' ? [p.R] : [p.a, p.b];
+    const onSurf = surfaces.some(R => Math.abs(r - R) < R * 1e-3);
+
+    body.querySelector('#f-formula').innerHTML = `${M.eq('∮ E · dA = [q_{enc}] / [ε_0]')}${M.eq('E = [k q_{enc}] / [r^2]')}`;
+
+    let surfRows;
+    if (type === 'delgado') {
+      surfRows = `<div class="result-row"><span class="result-label">Densidad superficial (σ = Q/4πR²)</span><span class="result-value">${Charts.sci(p.Q / (4 * Math.PI * p.R * p.R), 'C/m²')}</span></div>`;
+    } else {
+      const qin = -p.q, qout = p.Q + p.q;
+      surfRows = `
+        <div class="result-row"><span class="result-label">Carga en superficie interior (−q)</span><span class="result-value">${Charts.sci(qin, 'C')}</span></div>
+        <div class="result-row"><span class="result-label">Carga en superficie exterior (Q + q)</span><span class="result-value">${Charts.sci(qout, 'C')}</span></div>
+        <div class="result-row"><span class="result-label">σ interior / σ exterior</span><span class="result-value">${Charts.sci(qin / (4 * Math.PI * p.a * p.a))} / ${Charts.sci(qout / (4 * Math.PI * p.b * p.b))} C/m²</span></div>`;
+    }
+    body.querySelector('#f-results').innerHTML = `
+      <div class="result-row"><span class="result-label">Región de la superficie gaussiana</span><span class="result-value">${region}</span></div>
+      <div class="result-row"><span class="result-label">Carga encerrada (q<sub>enc</sub>)</span><span class="result-value">${Charts.sci(qenc, 'C')}</span></div>
+      <div class="result-row"><span class="result-label">Flujo eléctrico (Φ)</span></div>
+      <div class="result-value big">${Charts.sci(phi, 'N·m²/C')}</div>
+      <div class="result-row" style="margin-top:10px"><span class="result-label">Campo en r (radial)</span><span class="result-value">${Charts.sci(Math.abs(E), 'N/C')} ${E > 0 ? '(hacia afuera)' : E < 0 ? '(hacia adentro)' : ''}</span></div>
+      ${surfRows}
+    `;
+    let note;
+    if (badRadii) note = '<b>Atención:</b> el radio interior a debe ser menor que el exterior b.';
+    else if (onSurf) note = '<b>Atención:</b> la superficie gaussiana coincide con una superficie cargada; elige r un poco mayor o menor.';
+    else if (type === 'grueso') note = '<b>Conductor en equilibrio:</b> E = 0 dentro del material. Por eso en la superficie interior se induce −q (para anular el campo de la carga central) y la exterior queda con Q + q. Fuera, el cascarón se comporta como una carga puntual Q + q en el centro.';
+    else note = '<b>Teorema del cascarón:</b> dentro de un cascarón uniforme su carga Q no produce campo (solo actúa la carga central q). Fuera, todo se comporta como una carga puntual q + Q ubicada en el centro.';
+    body.querySelector('#f-note').innerHTML = note;
+
+    drawCascaron(p, r, qenc, badRadii);
+    graphCascaron(p, r, E);
+  }
+
+  function drawCascaron(p, r, qenc, badRadii) {
+    body.querySelector('#f-viz-title').textContent = 'Corte transversal del cascarón';
+    const W = 380, H = 300;
+    vizWrap.innerHTML = `<canvas width="${W}" height="${H}"></canvas>`;
+    const ctx = vizWrap.querySelector('canvas').getContext('2d');
+    const dark = currentTheme() === 'dark';
+    const C = dark ? { text: '#8b93ad', bg: '#0f1524' } : { text: '#5b6478', bg: '#f4f6fb' };
+    const outer = p.type === 'delgado' ? p.R : Math.max(p.a, p.b);
+    const sc = (Math.min(W, H) / 2 - 16) / (Math.max(outer * 1.1, r) * 1.08);
+    const cx = W / 2, cy = H / 2;
+    const signCol = v => v > 0 ? '#3b82f6' : v < 0 ? '#ef4444' : '#8b93ad';
+
+    ctx.fillStyle = C.bg; ctx.fillRect(0, 0, W, H);
+
+    // marcas de carga (+/−) distribuidas sobre una circunferencia
+    const marks = (R, qv, n) => {
+      if (qv === 0) return;
+      ctx.fillStyle = signCol(qv); ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'center';
+      for (let i = 0; i < n; i++) {
+        const a = (i / n) * Math.PI * 2 + 0.2;
+        ctx.fillText(qv > 0 ? '+' : '−', cx + Math.cos(a) * R * sc, cy - Math.sin(a) * R * sc + 4);
+      }
+      ctx.textAlign = 'left';
+    };
+
+    if (p.type === 'delgado') {
+      ctx.strokeStyle = signCol(p.Q); ctx.lineWidth = 5;
+      ctx.beginPath(); ctx.arc(cx, cy, p.R * sc, 0, Math.PI * 2); ctx.stroke();
+      marks(p.R + 0.07 * outer, p.Q, 12);
+    } else if (!badRadii) {
+      ctx.fillStyle = dark ? 'rgba(139,147,173,.25)' : 'rgba(91,100,120,.18)';
+      ctx.beginPath();
+      ctx.arc(cx, cy, p.b * sc, 0, Math.PI * 2);
+      ctx.arc(cx, cy, p.a * sc, 0, Math.PI * 2, true);
+      ctx.fill();
+      ctx.strokeStyle = C.text; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(cx, cy, p.b * sc, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(cx, cy, p.a * sc, 0, Math.PI * 2); ctx.stroke();
+      marks(p.a - 0.07 * outer, -p.q, 10);
+      marks(p.b + 0.07 * outer, p.Q + p.q, 14);
+    }
+
+    // carga central
+    if (p.q !== 0) {
+      ctx.beginPath(); ctx.arc(cx, cy, 9, 0, Math.PI * 2); ctx.fillStyle = signCol(p.q); ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText(p.q > 0 ? '+' : '−', cx, cy + 4); ctx.textAlign = 'left';
+    }
+
+    // superficie gaussiana y vectores de campo sobre ella
+    ctx.strokeStyle = '#8b5cf6'; ctx.lineWidth = 2; ctx.setLineDash([6, 4]);
+    ctx.beginPath(); ctx.arc(cx, cy, r * sc, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
+    if (qenc !== 0) {
+      for (let i = 0; i < 12; i++) {
+        const a = (i / 12) * Math.PI * 2;
+        const x = cx + Math.cos(a) * r * sc, y = cy - Math.sin(a) * r * sc;
+        const L = 18;
+        if (qenc > 0) arrow(ctx, x, y, x + Math.cos(a) * L, y - Math.sin(a) * L, '#16a34a');
+        else arrow(ctx, x + Math.cos(a) * L, y - Math.sin(a) * L, x, y, '#ef4444');
+      }
+    }
+    ctx.fillStyle = C.text; ctx.font = '10px sans-serif';
+    ctx.fillText(qenc === 0 ? 'Línea morada: superficie gaussiana · E = 0 sobre ella' : 'Línea morada: superficie gaussiana · flechas: campo E', 6, H - 6);
+  }
+
+  function graphCascaron(p, rNow, Enow) {
+    body.querySelector('#f-graph-title').textContent = 'Gráfica: Campo E(r) vs. distancia al centro';
+    const uf = parseFloat(body.querySelector('#f-sh-r-unit').value);
+    const outer = p.type === 'delgado' ? p.R : Math.max(p.a, p.b);
+    const inner = p.type === 'delgado' ? p.R : Math.min(p.a, p.b);
+    const rMax = Math.max(outer, rNow) * 2;
+    const pts = [];
+    for (let i = 1; i <= 300; i++) {
+      const r = (i / 300) * rMax;
+      pts.push([r, K * shellQenc(r, p) / (r * r)]);
+    }
+    // limita la escala para que la divergencia en r → 0 no aplaste la gráfica
+    const ref = pts.filter(pt => pt[0] >= inner * 0.35).map(pt => Math.abs(pt[1])).concat([Math.abs(Enow)]);
+    const lim = Math.max(...ref, 1e-30) * 1.15;
+    const clip = y => Math.max(-lim, Math.min(lim, y));
+    const clipped = pts.map(([x, y]) => [x / uf, clip(y)]);
+    const hasNeg = clipped.some(pt => pt[1] < 0);
+    const hasPos = clipped.some(pt => pt[1] > 0);
+    const container = body.querySelector('#f-graph');
+    container.innerHTML = '';
+    container.appendChild(Charts.lineChart({
+      width: 300, height: 170, xMin: 0, xMax: rMax / uf,
+      yMin: hasNeg ? -lim : 0, yMax: hasPos || !hasNeg ? lim : 0,
+      xTicks: [0, 0.25, 0.5, 0.75, 1].map(f => f * rMax / uf), theme: currentTheme(),
+      series: [{ points: clipped, color: '#8b5cf6', point: [rNow / uf, clip(Enow)] }],
+    }));
+    caption(container, `Eje x: r (${UI.unitLabel(body, 'f-sh-r')}) · Eje y: E radial (N/C), positivo = hacia afuera.`);
+  }
+
+  // ---------------- Placas paralelas ----------------
+  function updatePlacas() {
+    const s1 = UI.get(body, 'f-p-s1');
+    const s2 = UI.get(body, 'f-p-s2');
+    const d = UI.get(body, 'f-p-d');
+    const A = UI.raw(body, 'f-p-A');
+    // superposición de dos planos infinitos: cada uno aporta σ/2ε₀ alejándose de él (si σ > 0)
+    const Eleft = -(s1 + s2) / (2 * EPS0);
+    const Emid = (s1 - s2) / (2 * EPS0);
+    const Eright = (s1 + s2) / (2 * EPS0);
+    const dV = Emid * d; // V₁ − V₂
+    const fA = s1 * s2 / (2 * EPS0);
+    const tol = Math.max(Math.abs(s1), Math.abs(s2)) * 1e-9;
+    const equalSame = s1 * s2 > 0 && Math.abs(s1 - s2) <= tol;
+    const equalOpp = s1 * s2 < 0 && Math.abs(s1 + s2) <= tol;
+
+    const dirTxt = E => Math.abs(E) < 1e-20 ? '' : E > 0 ? ' →' : ' ←';
+    body.querySelector('#f-formula').innerHTML = `${M.eq('E_{"placa"} = [σ] / [2 ε_0]')}${M.eq('Φ = [σ A] / [ε_0]')}`;
+    body.querySelector('#f-results').innerHTML = `
+      <div class="result-row"><span class="result-label">E a la izquierda de la placa 1</span><span class="result-value">${Charts.sci(Math.abs(Eleft), 'N/C')}${dirTxt(Eleft)}</span></div>
+      <div class="result-row"><span class="result-label">E entre las placas</span></div>
+      <div class="result-value big">${Charts.sci(Math.abs(Emid), 'N/C')}${dirTxt(Emid)}</div>
+      <div class="result-row" style="margin-top:10px"><span class="result-label">E a la derecha de la placa 2</span><span class="result-value">${Charts.sci(Math.abs(Eright), 'N/C')}${dirTxt(Eright)}</span></div>
+      <div class="result-row"><span class="result-label">Flujo por el cilindro gaussiano (σ₁A/ε₀)</span><span class="result-value">${Charts.sci(s1 * A / EPS0, 'N·m²/C')}</span></div>
+      <div class="result-row"><span class="result-label">Flujo por A entre placas (E·A)</span><span class="result-value">${Charts.sci(Math.abs(Emid) * A, 'N·m²/C')}</span></div>
+      <div class="result-row"><span class="result-label">Diferencia de potencial (V₁ − V₂)</span><span class="result-value">${Charts.sci(dV, 'V')}</span></div>
+      <div class="result-row"><span class="result-label">Fuerza por unidad de área</span><span class="result-value">${Charts.sci(Math.abs(fA), 'N/m²')} ${fA > 0 ? '(se repelen)' : fA < 0 ? '(se atraen)' : ''}</span></div>
+      ${equalOpp ? `<div class="result-row"><span class="result-label">Capacitancia por área (ε₀/d)</span><span class="result-value">${Charts.sci(EPS0 / d, 'F/m²')}</span></div>` : ''}
+    `;
+    let note;
+    if (equalSame) note = '<b>Mismo signo e igual densidad:</b> entre las placas los campos se cancelan (E = 0) y afuera se suman: E = σ/ε₀, apuntando hacia afuera si σ > 0 o hacia las placas si σ < 0.';
+    else if (equalOpp) note = '<b>Signos opuestos (capacitor):</b> el campo queda confinado entre las placas, E = σ/ε₀, y afuera se anula. Va de la placa positiva a la negativa.';
+    else note = '<b>Superposición:</b> cada placa infinita produce E = |σ|/2ε₀ a ambos lados, sin importar la distancia. El campo total en cada región es la suma vectorial de ambos.';
+    body.querySelector('#f-note').innerHTML = note;
+
+    drawPlacas(s1, s2, [Eleft, Emid, Eright]);
+    graphPlacas(d, [Eleft, Emid, Eright]);
+  }
+
+  function drawPlacas(s1, s2, Es) {
+    body.querySelector('#f-viz-title').textContent = 'Vista lateral de las placas';
+    vizWrap.innerHTML = '<svg width="100%" height="250" viewBox="0 0 420 250"></svg>';
+    const svgEl = vizWrap.querySelector('svg');
+    const add = (tag, a) => svgEl.appendChild(Charts.svg(tag, a));
+    const signCol = v => v > 0 ? '#3b82f6' : v < 0 ? '#ef4444' : '#8b93ad';
+    const defs = Charts.svg('defs');
+    const mk = Charts.svg('marker', { id: 'f-pl-ar', markerWidth: 8, markerHeight: 8, refX: 6, refY: 3, orient: 'auto' });
+    mk.appendChild(Charts.svg('path', { d: 'M0,0 L6,3 L0,6 Z', fill: '#16a34a' }));
+    defs.appendChild(mk); svgEl.appendChild(defs);
+
+    const x1 = 160, x2 = 260, top = 25, bot = 205;
+    [[x1, s1, 'σ₁'], [x2, s2, 'σ₂']].forEach(([x, s, lbl]) => {
+      add('rect', { x: x - 6, y: top, width: 12, height: bot - top, rx: 2, fill: signCol(s) });
+      if (s !== 0) {
+        for (let y = top + 12; y < bot; y += 20) {
+          add('text', { x, y: y + 4, fill: '#fff', 'font-size': 11, 'font-weight': 700, 'text-anchor': 'middle' }).textContent = s > 0 ? '+' : '−';
+        }
+      }
+      add('text', { x, y: top - 8, fill: signCol(s), 'font-size': 12, 'font-weight': 700, 'text-anchor': 'middle' }).textContent = lbl;
+    });
+
+    // flechas de campo en las tres regiones, longitud proporcional a |E|
+    const Emax = Math.max(...Es.map(Math.abs));
+    const regions = [[25, 145], [175, 245], [275, 400]];
+    Es.forEach((E, i) => {
+      const [a, b] = regions[i];
+      const mid = (a + b) / 2;
+      const half = Emax > 0 ? (Math.abs(E) / Emax) * (b - a - 16) / 2 : 0;
+      if (half < 2) {
+        add('text', { x: mid, y: 118, fill: 'currentColor', 'font-size': 12, 'text-anchor': 'middle', opacity: .7 }).textContent = 'E = 0';
+      } else {
+        for (let y = 50; y <= 180; y += 32) {
+          const from = E > 0 ? mid - half : mid + half, to = E > 0 ? mid + half : mid - half;
+          add('line', { x1: from, y1: y, x2: to, y2: y, stroke: '#16a34a', 'stroke-width': 2, 'marker-end': 'url(#f-pl-ar)' });
+        }
+      }
+      add('text', { x: mid, y: 226, fill: 'currentColor', 'font-size': 10, 'text-anchor': 'middle', opacity: .75 }).textContent = Charts.sci(Math.abs(E), 'N/C');
+    });
+
+    // cilindro gaussiano (pastillero) que atraviesa la placa 1
+    add('rect', { x: x1 - 24, y: 98, width: 48, height: 34, rx: 6, fill: 'rgba(139,92,246,.12)', stroke: '#8b5cf6', 'stroke-width': 1.5, 'stroke-dasharray': '5,3' });
+    add('line', { x1, y1: 238, x2, y2: 238, stroke: 'currentColor', 'stroke-width': 1, opacity: .4 });
+    add('text', { x: (x1 + x2) / 2, y: 248, fill: 'currentColor', 'font-size': 10, 'text-anchor': 'middle', opacity: .7 }).textContent = 'd';
+  }
+
+  function graphPlacas(d, Es) {
+    body.querySelector('#f-graph-title').textContent = 'Gráfica: Campo Eₓ a lo largo del eje x';
+    const uf = parseFloat(body.querySelector('#f-p-d-unit').value);
+    const D = d / uf;
+    const pts = [[-D, Es[0]], [0, Es[0]], [0, Es[1]], [D, Es[1]], [D, Es[2]], [2 * D, Es[2]]];
+    const m = Math.max(...Es.map(Math.abs), 1e-30) * 1.15;
+    const container = body.querySelector('#f-graph');
+    container.innerHTML = '';
+    container.appendChild(Charts.lineChart({
+      width: 300, height: 170, xMin: -D, xMax: 2 * D, yMin: -m, yMax: m,
+      xTicks: [-D, 0, D, 2 * D], theme: currentTheme(),
+      series: [{ points: pts, color: '#16a34a' }],
+    }));
+    caption(container, `Placa 1 en x = 0, placa 2 en x = d (${UI.unitLabel(body, 'f-p-d')}). Eₓ > 0 apunta a la derecha.`);
+  }
+
+  const MODES = { plana: updatePlana, gauss: updateGauss, cascaron: updateCascaron, placas: updatePlacas };
+
   function update() {
-    const gauss = modeEl.value === 'gauss';
-    body.querySelector('#f-plana').style.display = gauss ? 'none' : '';
-    body.querySelector('#f-gauss').style.display = gauss ? '' : 'none';
-    if (gauss) updateGauss(); else updatePlana();
+    const mode = modeEl.value;
+    Object.keys(MODES).forEach(m => { body.querySelector('#f-' + m).style.display = m === mode ? '' : 'none'; });
+    MODES[mode]();
   }
 
   body.querySelector('#f-add').onclick = () => {
@@ -446,8 +746,21 @@ function renderFlujoElectrico(body) {
   };
   body.querySelector('#f-clear').onclick = () => { charges = []; renderChargeList(); updateGauss(); };
 
-  UI.bind(body, ['f-e', 'f-a', 'f-b', 'f-rad', 'f-area', 'f-theta', 'f-size'], update);
-  [modeEl, shapeEl, surfEl].forEach(el => el.addEventListener('change', update));
+  UI.bind(body, ['f-e', 'f-a', 'f-b', 'f-rad', 'f-area', 'f-theta', 'f-size',
+    'f-sh-Q', 'f-sh-q', 'f-sh-R', 'f-sh-a', 'f-sh-b', 'f-sh-r',
+    'f-p-s1', 'f-p-s2', 'f-p-d', 'f-p-A'], update);
+  [modeEl, shapeEl, surfEl, body.querySelector('#f-sh-type')].forEach(el => el.addEventListener('change', update));
+
+  // configuraciones rápidas de placas: σ₂ toma la magnitud de σ₁ con el signo elegido
+  const presetPlacas = sign => {
+    const v = Math.abs(UI.raw(body, 'f-p-s1')) || 2;
+    const f = parseFloat(body.querySelector('#f-p-s1-unit').value);
+    UI.set(body, 'f-p-s1', v, f);
+    UI.set(body, 'f-p-s2', sign * v, f);
+    update();
+  };
+  body.querySelector('#f-p-same').onclick = () => presetPlacas(1);
+  body.querySelector('#f-p-opp').onclick = () => presetPlacas(-1);
 
   renderChargeList();
   setRedraw(update);

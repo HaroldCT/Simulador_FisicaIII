@@ -6,79 +6,38 @@ function renderTeoria() {
   // f: [expresión en sintaxis M.eq, etiqueta]
   const temas = [
     {
-      t: 'Electrostática',
-      d: 'La Ley de Coulomb describe la fuerza entre dos cargas puntuales: es proporcional al producto de las cargas e inversamente proporcional al cuadrado de la distancia. El campo eléctrico es la fuerza por unidad de carga positiva de prueba, y el potencial eléctrico es la energía potencial por unidad de carga.',
+      t: 'Ley de Coulomb',
+      d: 'La Ley de Coulomb describe la fuerza entre dos cargas puntuales: es proporcional al producto de las cargas e inversamente proporcional al cuadrado de la distancia que las separa. Cargas del mismo signo se repelen y de signo opuesto se atraen. En un medio material la fuerza se reduce según su permitividad relativa εᵣ, y por la tercera ley de Newton ambas cargas sienten fuerzas de igual magnitud y sentido opuesto.',
       f: [
         ['F = [k |q_1 q_2|] / [r^2]', 'Ley de Coulomb'],
         ['k = [1] / [4π ε_0] ≈ 8.99 × 10^9 "N·m²/C²"', 'Constante de Coulomb'],
-        ['E = [F] / [q_0] = [k q] / [r^2]', 'Campo de una carga puntual'],
-        ['V = [k q] / [r]', 'Potencial eléctrico'],
-        ['U = [k q_1 q_2] / [r]', 'Energía potencial'],
+        ['F = [k |q_1 q_2|] / [ε_r r^2]', 'En un medio dieléctrico'],
+        ['U = [k q_1 q_2] / [r]', 'Energía potencial del par'],
+      ],
+    },
+    {
+      t: 'Campo eléctrico',
+      d: 'El campo eléctrico es la fuerza por unidad de carga que sentiría una carga de prueba positiva en un punto. Para varias cargas se aplica el principio de superposición: el campo total es la suma vectorial de los campos de cada carga. Las líneas de campo salen de las cargas positivas y llegan a las negativas, y las superficies equipotenciales son siempre perpendiculares a ellas.',
+      f: [
+        ['E = [F] / [q_0]', 'Definición'],
+        ['E = [k q] / [r^2]', 'Carga puntual'],
+        ['E = Σ [k q_i] / [r_i^2] r̂_i', 'Superposición'],
+        ['V = Σ [k q_i] / [r_i]', 'Potencial eléctrico'],
+        ['F = q_0 E', 'Fuerza sobre una carga de prueba'],
       ],
     },
     {
       t: 'Flujo eléctrico y Ley de Gauss',
-      d: 'El flujo eléctrico mide cuántas líneas de campo atraviesan una superficie. Para una superficie plana en un campo uniforme depende del ángulo entre E y el vector normal. La Ley de Gauss establece que el flujo total a través de cualquier superficie cerrada es proporcional a la carga neta encerrada; las cargas exteriores no aportan flujo neto.',
+      d: 'El flujo eléctrico mide cuántas líneas de campo atraviesan una superficie. Para una superficie plana en un campo uniforme depende del ángulo entre E y el vector normal. La Ley de Gauss establece que el flujo total a través de cualquier superficie cerrada es proporcional a la carga neta encerrada; las cargas exteriores no aportan flujo neto. Con ella se obtiene fácilmente el campo de cascarones esféricos y de placas cargadas.',
       f: [
         ['Φ_E = E A cos θ', 'Superficie plana, campo uniforme'],
         ['Φ_E = ∫ E · dA', 'Definición general'],
         ['∮ E · dA = [q_{enc}] / [ε_0]', 'Ley de Gauss'],
         ['ε_0 = 8.85 × 10^{-12} "C²/N·m²"', 'Permitividad del vacío'],
         ['E = [q] / [4π ε_0 r^2]', 'Gauss con simetría esférica'],
-      ],
-    },
-    {
-      t: 'Circuitos (Ohm y Kirchhoff)',
-      d: 'La Ley de Ohm relaciona voltaje, corriente y resistencia. Las leyes de Kirchhoff garantizan la conservación de la carga (ley de nodos) y de la energía (ley de mallas) en cualquier circuito.',
-      f: [
-        ['V = I R', 'Ley de Ohm'],
-        ['Σ I_{"entra"} = Σ I_{"sale"}', 'Ley de nodos'],
-        ['Σ V = 0', 'Ley de mallas'],
-        ['P = V I = I^2 R', 'Potencia eléctrica'],
-      ],
-    },
-    {
-      t: 'Circuito RC',
-      d: 'En un circuito RC, el capacitor se carga o descarga exponencialmente. La constante de tiempo τ = RC indica el tiempo necesario para alcanzar ~63% del cambio total.',
-      f: [
-        ['V_C(t) = V (1 - e^{-t/RC})', 'Carga'],
-        ['V_C(t) = V_0 e^{-t/RC}', 'Descarga'],
-        ['τ = R C', 'Constante de tiempo'],
-      ],
-    },
-    {
-      t: 'Magnetismo',
-      d: 'La fuerza de Lorentz actúa sobre una carga en movimiento dentro de un campo magnético, siempre perpendicular a la velocidad y al campo. Esto produce trayectorias circulares o helicoidales.',
-      f: [
-        ['F = |q| v B sen θ', 'Fuerza magnética'],
-        ['r = [m v_⊥] / [|q| B]', 'Radio de giro'],
-        ['T = [2π m] / [|q| B]', 'Periodo'],
-      ],
-    },
-    {
-      t: 'Inducción electromagnética',
-      d: 'La Ley de Faraday establece que un flujo magnético variable induce una fuerza electromotriz. La Ley de Lenz indica que la corriente inducida se opone al cambio que la genera.',
-      f: [
-        ['ε = -N [dΦ_B] / [dt]', 'Ley de Faraday'],
-        ['Φ_B = B A cos θ', 'Flujo magnético'],
-        ['ε_{max} = N B A ω', 'FEM máxima de un generador'],
-      ],
-    },
-    {
-      t: 'Motores eléctricos',
-      d: 'El torque sobre una espira con corriente dentro de un campo magnético es la base de los motores eléctricos. Un conmutador invierte la corriente cada media vuelta para mantener el giro continuo.',
-      f: [
-        ['τ = N I A B sen θ', 'Torque sobre la espira'],
-        ['μ = N I A', 'Momento magnético'],
-      ],
-    },
-    {
-      t: 'Ondas electromagnéticas',
-      d: 'Las ondas electromagnéticas son oscilaciones perpendiculares de campos eléctrico y magnético que se propagan en el vacío a la velocidad de la luz, formando el espectro electromagnético.',
-      f: [
-        ['c = f λ', 'Relación fundamental'],
-        ['c = [1] / [sqrt[μ_0 ε_0]] ≈ 3 × 10^8 "m/s"', 'Velocidad de la luz'],
-        ['E = c B', 'Relación entre campos'],
+        ['E = [σ] / [2 ε_0]', 'Plano infinito cargado'],
+        ['E = [σ] / [ε_0]', 'Entre placas con signos opuestos'],
+        ['E_{"dentro"} = 0', 'Interior de un conductor'],
       ],
     },
   ];
@@ -99,6 +58,8 @@ const EJERCICIOS = [
   { q: '¿Cuál es la fuerza entre dos cargas de +4 µC y -2 µC separadas 0.3 m en el aire?', a: 'F = k|q₁q₂|/r² = (8.99×10⁹)(4×10⁻⁶)(2×10⁻⁶)/(0.3)² ≈ 0.80 N (atractiva).' },
   { q: 'Un campo uniforme de 600 N/C atraviesa una placa de 0.5 m × 0.4 m. Si la normal forma 60° con el campo, ¿cuál es el flujo?', a: 'Φ = E·A·cos θ = 600 × 0.2 × cos 60° = 60 N·m²/C.' },
   { q: 'Una esfera gaussiana encierra cargas de +3 µC y −1 µC. ¿Cuál es el flujo eléctrico total?', a: 'Φ = q_enc/ε₀ = (2×10⁻⁶)/(8.85×10⁻¹²) ≈ 2.26×10⁵ N·m²/C. Las cargas exteriores no cambian este resultado.' },
+  { q: 'Un cascarón esférico delgado de radio 0.5 m tiene carga Q = +4 µC y en su centro hay q = +2 µC. Calcula E a r = 0.2 m y a r = 1 m.', a: 'r = 0.2 m (dentro): solo cuenta q → E = kq/r² = (8.99×10⁹)(2×10⁻⁶)/0.04 ≈ 4.5×10⁵ N/C. r = 1 m (fuera): q_enc = 6 µC → E = (8.99×10⁹)(6×10⁻⁶)/1² ≈ 5.4×10⁴ N/C.' },
+  { q: 'Dos placas paralelas infinitas tienen σ = ±3 µC/m² y están separadas 2 mm. ¿Cuánto vale E entre ellas y fuera? ¿Y si ambas son +3 µC/m²?', a: 'Signos opuestos: E = σ/ε₀ = 3×10⁻⁶ / 8.85×10⁻¹² ≈ 3.4×10⁵ N/C entre ellas y 0 afuera (ΔV = E·d ≈ 678 V). Mismo signo: E = 0 entre ellas y 3.4×10⁵ N/C afuera, alejándose de las placas.' },
   { q: 'Un circuito tiene una fuente de 9V y dos resistencias en serie de 100Ω y 200Ω. Calcula la corriente.', a: 'R_total = 300Ω → I = V/R = 9/300 = 0.03 A = 30 mA.' },
   { q: 'Un capacitor de 100 µF se carga con una fuente de 5V a través de 2 kΩ. ¿Cuál es la constante de tiempo τ?', a: 'τ = R·C = 2000 × 100×10⁻⁶ = 0.2 s.' },
   { q: 'Un protón se mueve a 2×10⁶ m/s perpendicular a un campo de 0.5 T. Calcula la fuerza magnética.', a: 'F = qvB = (1.6×10⁻¹⁹)(2×10⁶)(0.5) ≈ 1.6×10⁻¹³ N.' },

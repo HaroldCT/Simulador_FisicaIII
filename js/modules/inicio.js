@@ -1,5 +1,7 @@
 const TOPIC_CARDS = [
-  { cat: 'electrostatica', ico: 'bolt',     color: '#3b82f6', name: 'Electrostática', desc: 'Coulomb, campo eléctrico, flujo y ley de Gauss' },
+  { cat: 'coulomb',        ico: 'bolt',     color: '#3b82f6', name: 'Ley de Coulomb', desc: 'Fuerza entre cargas puntuales en distintos medios' },
+  { cat: 'campo',          ico: 'field',    color: '#06b6d4', name: 'Campo Eléctrico', desc: 'Líneas de campo, equipotenciales y potencial de varias cargas' },
+  { cat: 'flujo',          ico: 'flux',     color: '#f97316', name: 'Flujo Eléctrico', desc: 'Ley de Gauss, cascarones y placas paralelas cargadas' },
   { cat: 'circuitos',      ico: 'circuit',  color: '#16a34a', name: 'Circuitos',      desc: 'Ohm, Kirchhoff, resistencias y circuitos RC' },
   { cat: 'magnetismo',     ico: 'magnet',   color: '#8b5cf6', name: 'Magnetismo',     desc: 'Campo magnético, fuerzas y leyes' },
   { cat: 'induccion',      ico: 'swirl',    color: '#f59e0b', name: 'Inducción',      desc: 'Ley de Faraday y corriente inducida' },

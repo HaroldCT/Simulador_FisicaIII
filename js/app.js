@@ -1,18 +1,20 @@
 // Enrutador principal y control de tema/sidebar.
 // disabled: true oculta temporalmente el módulo (el código se conserva).
 const CATEGORIES = {
-  electrostatica: { label: 'Electrostática', routes: ['coulomb', 'campo-electrico', 'flujo-electrico'] },
+  coulomb:        { label: 'Ley de Coulomb',   routes: ['coulomb'] },
+  campo:          { label: 'Campo Eléctrico',  routes: ['campo-electrico'] },
+  flujo:          { label: 'Flujo Eléctrico',  routes: ['flujo-electrico'] },
   circuitos:      { label: 'Circuitos',       routes: ['ohm', 'circuito-rc'], disabled: true },
-  magnetismo:     { label: 'Magnetismo',      routes: ['magnetismo'] },
-  induccion:      { label: 'Inducción',       routes: ['induccion'] },
+  magnetismo:     { label: 'Magnetismo',      routes: ['magnetismo'], disabled: true },
+  induccion:      { label: 'Inducción',       routes: ['induccion'], disabled: true },
   motores:        { label: 'Motores',         routes: ['motores'], disabled: true },
   ondas:          { label: 'Ondas EM',        routes: ['ondas'], disabled: true },
 };
 
 const ROUTE_META = {
-  'coulomb':         { title: 'Ley de Coulomb',      render: renderCoulomb,        category: 'electrostatica' },
-  'campo-electrico': { title: 'Campo Eléctrico',      render: renderCampoElectrico, category: 'electrostatica' },
-  'flujo-electrico': { title: 'Flujo Eléctrico',      render: renderFlujoElectrico, category: 'electrostatica' },
+  'coulomb':         { title: 'Ley de Coulomb',      render: renderCoulomb,        category: 'coulomb' },
+  'campo-electrico': { title: 'Campo Eléctrico',      render: renderCampoElectrico, category: 'campo' },
+  'flujo-electrico': { title: 'Flujo Eléctrico',      render: renderFlujoElectrico, category: 'flujo' },
   'ohm':             { title: 'Ohm y Kirchhoff',      render: renderOhm,            category: 'circuitos' },
   'circuito-rc':     { title: 'Circuito RC',          render: renderCircuitoRC,     category: 'circuitos' },
   'magnetismo':      { title: 'Campo Magnético',      render: renderMagnetismo,     category: 'magnetismo' },

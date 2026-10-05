@@ -348,3 +348,12 @@ input[type=number]{font-family:inherit;}
   .theory-formula .math{font-size:19px;}
 }
 .math sub .mtext,.math sup .mtext{font-size:1em;}
+
+/* ---------- Hero: la esfera nunca se superpone al título ---------- */
+.hero-title,.hero-desc{max-width:min(560px, calc(100% - 140px));}
+@media(max-width:760px){
+  .hero{padding:24px 20px;}
+  .hero-title{font-size:22px;max-width:calc(100% - 60px);}
+  .hero-desc{max-width:100%;}
+  .hero-orb{width:42px;height:42px;right:16px;top:18px;transform:none;box-shadow:0 0 28px 4px rgba(59,130,246,.5);}
+}
